@@ -13,14 +13,12 @@ wherever a Google-blessed configuration exists.
 Every repo ends up copy-pasting the same block of ErrorProne, Spotless, and Checkstyle wiring, and
 then drifting out of sync. Packaging that wiring as one versioned plugin means:
 
-1. One line to adopt the whole quality stack in a new repo.
+1. Single import for all Java repos
 2. Consistent, Google-aligned rules everywhere, updated in one place.
-3. [Renovate](https://docs.renovatebot.com/) bumps the underlying tool versions centrally.
 
 ## What's included
 
-Applying the plugin applies and configures all of the following, so a consuming build needs to
-declare none of them itself:
+Applying the plugin applies and configures all of the following:
 
 | Tool | Plugin id | Purpose |
 | --- | --- | --- |
@@ -44,14 +42,11 @@ plugins {
 
 repositories {
     mavenCentral()
-    // ErrorProne, NullAway, and SpotBugs plugin jars are published only to the Gradle Plugin
-    // Portal, so keep it available for the plugin's transitive dependencies to resolve.
     gradlePluginPortal()
 }
 ```
 
-That is enough to get the full stack. The bundled auto-semver plugin sets `project.version` from your
-latest annotated git tag and adds a `release` task — see
+The bundled auto-semver plugin sets `project.version` from your  latest annotated git tag and adds a `release` task — see
 [its README](https://github.com/stellarsunset/auto-semver) for details.
 
 ## Configuration
