@@ -73,15 +73,6 @@ javaConventions {
 `ignoreFailures` governs Checkstyle and SpotBugs. ErrorProne is enforced by the compiler and Spotless
 by `spotlessCheck`; run `./gradlew spotlessApply` to auto-format.
 
-## Tool versions
-
-The versions of the underlying tools are defined in [`gradle/libs.versions.toml`](gradle/libs.versions.toml)
-and injected into the plugin at build time, so Renovate keeps them current. As shipped:
-
-- ErrorProne core `2.50.0`, NullAway `0.12.7`
-- google-java-format `1.27.0`
-- Checkstyle `10.26.1`
-
 ## Building & publishing
 
 This project mirrors the [auto-semver](https://github.com/stellarsunset/auto-semver) publishing setup:
