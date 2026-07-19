@@ -51,13 +51,19 @@ class JavaConventionsPluginFunctionalTest {
 
         BuildResult result = runner(projectDir, "spotlessCheck").buildAndFail();
 
-        assertEquals(TaskOutcome.FAILED, result.task(":spotlessCheck").getOutcome());
+        // spotlessCheck is an aggregate task; the per-format spotlessJavaCheck is what actually
+        // fails, and the aggregate never executes once its dependency fails.
+        assertEquals(TaskOutcome.FAILED, result.task(":spotlessJavaCheck").getOutcome());
     }
 
     private GradleRunner runner(File projectDir, String... arguments) {
         return GradleRunner.create()
                 .forwardOutput()
                 .withPluginClasspath()
+                // Run the build in-process so the functionalTest JVM's JaCoCo agent instruments the
+                // plugin code under test; TestKit otherwise forks a separate daemon and coverage is
+                // lost.
+                .withDebug(true)
                 .withProjectDir(projectDir)
                 .withArguments(arguments);
     }

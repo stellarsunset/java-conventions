@@ -1,9 +1,13 @@
 import com.vanniktech.maven.publish.GradlePublishPlugin
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     id("com.gradle.plugin-publish") version "2.1.0"
     jacoco
     id("com.vanniktech.maven.publish") version "0.36.0"
+    // Dogfood the bundled versioning plugin: it sets project.version from the latest annotated git
+    // tag and adds the `release` task the justfile drives.
+    alias(libs.plugins.auto.semver)
 }
 
 repositories {
@@ -67,9 +71,21 @@ tasks.test {
     useJUnitPlatform()
 }
 
+// Coverage for the functionalTest source set. Its build runs in-process (GradleRunner debug mode)
+// so the functionalTest JVM's JaCoCo agent captures the plugin code exercised by real builds.
+val functionalTestReport by tasks.registering(JacocoReport::class) {
+    dependsOn(functionalTest)
+    executionData(functionalTest.get())
+    sourceSets(sourceSets["main"])
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
 tasks.named<Task>("check") {
     dependsOn(functionalTest)
-    finalizedBy(tasks.jacocoTestReport)
+    finalizedBy(tasks.jacocoTestReport, functionalTestReport)
 }
 
 tasks.jacocoTestReport {
@@ -88,7 +104,7 @@ mavenPublishing {
 
     publishToMavenCentral(automaticRelease = true)
 
-    coordinates("io.github.stellarsunset", "java-conventions", "0.1.0")
+    coordinates("io.github.stellarsunset", "java-conventions", project.version.toString())
 
     pom {
         name = "java-conventions"

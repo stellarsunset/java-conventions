@@ -20,3 +20,6 @@ spotbugs-plugin = { module = "com.github.spotbugs.snom:spotbugs-gradle-plugin", 
 auto-semver = { module = "io.github.stellarsunset:auto-semver", version.ref = "auto-semver" }
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+
+[plugins]
+auto-semver = { id = "io.github.stellarsunset.auto-semver", version.ref = "auto-semver" }

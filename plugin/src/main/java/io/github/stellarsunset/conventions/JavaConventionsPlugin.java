@@ -12,9 +12,12 @@ import java.util.Properties;
 import net.ltgt.gradle.errorprone.CheckSeverity;
 import net.ltgt.gradle.errorprone.ErrorProneOptions;
 import net.ltgt.gradle.nullaway.NullAwayExtension;
+import net.ltgt.gradle.nullaway.NullAwayOptions;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.plugins.ExtensionAware;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.plugins.quality.Checkstyle;
 import org.gradle.api.plugins.quality.CheckstyleExtension;
 import org.gradle.api.tasks.compile.JavaCompile;
@@ -68,10 +71,20 @@ public class JavaConventionsPlugin implements Plugin<Project> {
                 .add("errorprone", "com.google.errorprone:error_prone_core:" + versions.errorProneCore());
         project.getDependencies().add("errorprone", "com.uber.nullaway:nullaway:" + versions.nullaway());
 
-        // Packages NullAway should enforce null-safety within. When none are configured the check
-        // stays off, so the plugin is safe to apply to projects that have not opted in.
+        // Packages NullAway should enforce null-safety within, sourced from the extension.
         NullAwayExtension nullAway = project.getExtensions().getByType(NullAwayExtension.class);
         nullAway.getAnnotatedPackages().set(extension.getNullAwayAnnotatedPackages());
+
+        // NullAway runs as an error only once packages are opted in; otherwise it is switched fully
+        // OFF. This severity MUST be set through the nullaway DSL rather than errorprone's `checks`
+        // map: the nullaway plugin emits its own `-Xep:NullAway` argument whenever severity is not
+        // OFF, and an enabled-but-unconfigured NullAway (no AnnotatedPackages, no OnlyNullMarked)
+        // crashes the compiler. Setting OFF here makes the plugin skip the check entirely, so it is
+        // never instantiated and the plugin stays safe to apply to projects that have not opted in.
+        Provider<CheckSeverity> nullAwaySeverity =
+                extension
+                        .getNullAwayAnnotatedPackages()
+                        .map(packages -> packages.isEmpty() ? CheckSeverity.OFF : CheckSeverity.ERROR);
 
         project.getTasks()
                 .withType(JavaCompile.class)
@@ -82,17 +95,12 @@ public class JavaConventionsPlugin implements Plugin<Project> {
                                             .getExtensions()
                                             .getByType(ErrorProneOptions.class);
                             errorProne.getDisableWarningsInGeneratedCode().set(true);
-                            errorProne
-                                    .getChecks()
-                                    .put(
-                                            "NullAway",
-                                            extension
-                                                    .getNullAwayAnnotatedPackages()
-                                                    .map(
-                                                            packages ->
-                                                                    packages.isEmpty()
-                                                                            ? CheckSeverity.OFF
-                                                                            : CheckSeverity.ERROR));
+
+                            NullAwayOptions nullAwayOptions =
+                                    ((ExtensionAware) errorProne)
+                                            .getExtensions()
+                                            .getByType(NullAwayOptions.class);
+                            nullAwayOptions.getSeverity().set(nullAwaySeverity);
                         });
     }
 
@@ -116,12 +124,15 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         CheckstyleExtension checkstyle = project.getExtensions().getByType(CheckstyleExtension.class);
         checkstyle.setToolVersion(versions.checkstyle());
         // google_checks.xml ships inside the checkstyle jar; pull it straight from the resolved
-        // artifact so the ruleset always matches the tool version.
+        // artifact so the ruleset always matches the tool version. The `checkstyle` configuration
+        // resolves to the tool jar plus all its transitive dependencies, so narrow it to the single
+        // checkstyle jar — fromArchiveEntry requires exactly one archive.
+        FileCollection checkstyleJar =
+                project.getConfigurations()
+                        .getByName("checkstyle")
+                        .filter(file -> file.getName().startsWith("checkstyle-"));
         checkstyle.setConfig(
-                project.getResources()
-                        .getText()
-                        .fromArchiveEntry(
-                                project.getConfigurations().getByName("checkstyle"), "google_checks.xml"));
+                project.getResources().getText().fromArchiveEntry(checkstyleJar, "google_checks.xml"));
         // The Google ruleset reports at "warning" severity by default, which never fails a build.
         // Promote to "error" so violations are enforced (respecting ignoreFailures below).
         checkstyle.getConfigProperties().put("org.checkstyle.google.severity", "error");
