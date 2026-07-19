@@ -1,6 +1,7 @@
 # java-conventions
 
 [![Test](https://github.com/stellarsunset/java-conventions/actions/workflows/test.yaml/badge.svg)](https://github.com/stellarsunset/java-conventions/actions/workflows/test.yaml)
+![Claude](https://shields.io)
 
 An opinionated Gradle conventions plugin that bundles the linting, formatting, static-analysis,
 coverage, and versioning tools used across my open-source Java repositories into a single, applyable
