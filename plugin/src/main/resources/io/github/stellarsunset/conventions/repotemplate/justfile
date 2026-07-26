@@ -1,0 +1,16 @@
+# Seeded by io.github.stellarsunset.java-conventions @pluginVersion@. Safe to edit; this file is
+# written only when absent and is never overwritten once present.
+
+# List all available tasks
+default:
+  just --list
+
+# Run the tests for the project
+test:
+  ./gradlew test functionalTest
+
+# Tag, push, and publish a new release (type = patch | minor | major)
+release type='patch': test
+  ./gradlew release -P{{type}}
+  git push origin tag $(git describe --tags --abbrev=0)
+  ./gradlew publish

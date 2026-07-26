@@ -31,6 +31,7 @@ val toolVersions = mapOf(
     "nullawayVersion" to libs.versions.nullaway.core.get(),
     "googleJavaFormatVersion" to libs.versions.google.java.format.get(),
     "checkstyleVersion" to libs.versions.checkstyle.get(),
+    "pluginVersion" to project.version.toString(),
 )
 
 tasks.processResources {

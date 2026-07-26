@@ -62,6 +62,21 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         configureCheckstyle(project, extension);
         configureSpotBugs(project, extension);
         configureJacoco(project);
+        configureRepoTemplate(project);
+    }
+
+    private void configureRepoTemplate(Project project) {
+        project.getTasks()
+                .register(
+                        "applyRepoTemplate",
+                        ApplyRepoTemplateTask.class,
+                        task -> {
+                            task.setGroup("conventions");
+                            task.setDescription(
+                                    "Write the standard java-conventions repo files (.gitignore, .editorconfig, "
+                                            + "renovate.json5, shared .idea settings, justfile).");
+                            task.getPluginVersion().set(versions.pluginVersion());
+                        });
     }
 
     private void configureErrorProneAndNullAway(Project project, JavaConventionsExtension extension) {
@@ -185,9 +200,13 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         project.getTasks().named("test").configure(test -> test.finalizedBy("jacocoTestReport"));
     }
 
-    /** Tool runtime versions injected at build time from the version catalog. */
+    /** Tool runtime versions (and the plugin's own version) injected at build time. */
     private record ToolVersions(
-            String errorProneCore, String nullaway, String googleJavaFormat, String checkstyle) {
+            String errorProneCore,
+            String nullaway,
+            String googleJavaFormat,
+            String checkstyle,
+            String pluginVersion) {
 
         static ToolVersions load() {
             Properties props = new Properties();
@@ -204,7 +223,8 @@ public class JavaConventionsPlugin implements Plugin<Project> {
                     props.getProperty("errorProneCore"),
                     props.getProperty("nullaway"),
                     props.getProperty("googleJavaFormat"),
-                    props.getProperty("checkstyle"));
+                    props.getProperty("checkstyle"),
+                    props.getProperty("pluginVersion"));
         }
     }
 }

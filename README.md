@@ -69,6 +69,28 @@ javaConventions {
 `ignoreFailures` governs Checkstyle and SpotBugs. ErrorProne is enforced by the compiler and Spotless
 by `spotlessCheck`; run `./gradlew spotlessApply` to auto-format.
 
+## Repo template
+
+The plugin also carries the standard repo-hygiene files so a fleet of repos can share them and update
+them in one place. Run:
+
+```bash
+./gradlew applyRepoTemplate            # write/refresh the files
+./gradlew applyRepoTemplate --preview  # show what would change, write nothing
+```
+
+into the repository root (wherever the plugin is applied). Two flavours of file:
+
+- **Managed** — owned by the plugin and rewritten every run; each carries a "do not hand-edit"
+  header stamped with the plugin version. Change them in this plugin, not in the consuming repo.
+  Covers `.gitignore`, `.gitattributes`, `.editorconfig`, `renovate.json5`, and the shared
+  `.idea/` settings (`externalDependencies.xml`, `google-java-format.xml`, `codeStyles/`).
+- **Seed** — written only when absent, then owned by the repo. Currently just `justfile`.
+
+The `.idea` files make IntelliJ prompt to install the [google-java-format](https://github.com/google/google-java-format)
+plugin and enable it, so **Reformat Code** matches `spotlessApply`. You still need to add the
+`--add-exports` VM options that google-java-format requires (those are IDE-global, not per-repo).
+
 ## Building & publishing
 
 This project mirrors the [auto-semver](https://github.com/stellarsunset/auto-semver) publishing setup:

@@ -69,6 +69,51 @@ class JavaConventionsPluginFunctionalTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":checkstyleMain").getOutcome());
     }
 
+    @Test
+    void applyRepoTemplateWritesManagedAndSeedFiles(@TempDir File projectDir) throws Exception {
+        writeProject(projectDir, /* ignoreFailures= */ true);
+
+        BuildResult result = runner(projectDir, "applyRepoTemplate").build();
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":applyRepoTemplate").getOutcome());
+        assertTrue(new File(projectDir, ".gitignore").isFile(), ".gitignore written");
+        assertTrue(new File(projectDir, ".editorconfig").isFile(), ".editorconfig written");
+        assertTrue(new File(projectDir, "renovate.json5").isFile(), "renovate.json5 written");
+        assertTrue(
+                new File(projectDir, ".idea/externalDependencies.xml").isFile(),
+                ".idea/externalDependencies.xml written");
+        assertTrue(
+                new File(projectDir, ".idea/codeStyles/Project.xml").isFile(),
+                ".idea/codeStyles/Project.xml written");
+        assertTrue(new File(projectDir, "justfile").isFile(), "seed justfile written");
+
+        // The managed header is stamped and the version token is resolved.
+        String editorconfig = Files.readString(new File(projectDir, ".editorconfig").toPath());
+        assertTrue(
+                editorconfig.contains("Managed by io.github.stellarsunset.java-conventions"),
+                "managed header present");
+        assertTrue(!editorconfig.contains("@pluginVersion@"), "version token replaced");
+    }
+
+    @Test
+    void applyRepoTemplatePreviewWritesNothingAndSeedIsPreserved(@TempDir File projectDir)
+            throws Exception {
+        writeProject(projectDir, /* ignoreFailures= */ true);
+
+        // A seed file that already exists must never be clobbered.
+        File justfile = new File(projectDir, "justfile");
+        Files.writeString(justfile.toPath(), "# custom\n");
+
+        // --preview reports actions but writes nothing.
+        runner(projectDir, "applyRepoTemplate", "--preview").build();
+        assertTrue(!new File(projectDir, ".gitignore").exists(), "--preview wrote no managed file");
+
+        // A real run creates managed files but leaves the existing seed file untouched.
+        runner(projectDir, "applyRepoTemplate").build();
+        assertTrue(new File(projectDir, ".gitignore").isFile(), "managed file created on real run");
+        assertEquals("# custom\n", Files.readString(justfile.toPath()), "seed justfile preserved");
+    }
+
     private GradleRunner runner(File projectDir, String... arguments) {
         return GradleRunner.create()
                 .forwardOutput()
