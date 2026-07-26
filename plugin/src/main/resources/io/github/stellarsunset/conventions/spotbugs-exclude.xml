@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs exclude filter layered on top of the default bug patterns, wired in by
+  JavaConventionsPlugin via spotbugs.getExcludeFilter().
+
+  Records/DTOs routinely hold mutable components (List, Exception, arrays), so their auto-generated
+  accessors hand out the stored reference (EI_EXPOSE_REP) and their canonical constructors store the
+  caller's reference (EI_EXPOSE_REP2). Defensive copies aren't worth it for value types — and for
+  components like Exception there is no meaningful copy — so these two patterns are dropped. Every
+  other MALICIOUS_CODE check still runs.
+-->
+<FindBugsFilter>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+</FindBugsFilter>

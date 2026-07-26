@@ -5,10 +5,13 @@ import com.github.spotbugs.snom.Confidence;
 import com.github.spotbugs.snom.Effort;
 import com.github.spotbugs.snom.SpotBugsExtension;
 import com.github.spotbugs.snom.SpotBugsTask;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Properties;
 import net.ltgt.gradle.errorprone.CheckSeverity;
 import net.ltgt.gradle.errorprone.ErrorProneOptions;
@@ -36,7 +39,8 @@ import org.gradle.testing.jacoco.tasks.JacocoReport;
  *   <li><a href="https://github.com/uber/NullAway">NullAway</a> null-safety (opt-in per package)
  *   <li><a href="https://github.com/diffplug/spotless">Spotless</a> with google-java-format
  *   <li>Checkstyle using Google's bundled {@code google_checks.xml}
- *   <li><a href="https://spotbugs.github.io">SpotBugs</a> bytecode analysis
+ *   <li><a href="https://spotbugs.github.io">SpotBugs</a> bytecode analysis (with {@code
+ *       EI_EXPOSE_REP}/{@code EI_EXPOSE_REP2} excluded for records/DTOs)
  *   <li><a href="https://github.com/stellarsunset/auto-semver">auto-semver</a> git-tag versioning
  * </ul>
  */
@@ -180,6 +184,13 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         spotbugs.getReportLevel().set(Confidence.MEDIUM);
         spotbugs.getIgnoreFailures().set(extension.getIgnoreFailures());
 
+        // Drop EI_EXPOSE_REP / EI_EXPOSE_REP2 project-wide: records/DTOs routinely expose mutable
+        // components (List, Exception, arrays) where defensive copies aren't worthwhile. Unlike
+        // checkstyle's suppression filter, spotbugs.getExcludeFilter() is a RegularFileProperty and
+        // won't accept a jar-resource URL, so materialize the bundled filter to a real file first.
+        File excludeFilter = materializeResource(project, "spotbugs-exclude.xml", "spotbugs/exclude-filter.xml");
+        spotbugs.getExcludeFilter().set(excludeFilter);
+
         project.getTasks()
                 .withType(SpotBugsTask.class)
                 .configureEach(
@@ -187,6 +198,29 @@ public class JavaConventionsPlugin implements Plugin<Project> {
                             task.getReports().maybeCreate("html").getRequired().set(true);
                             task.getReports().maybeCreate("xml").getRequired().set(true);
                         });
+    }
+
+    /**
+     * Copy a bundled classpath resource out to a file under the project's build directory and return
+     * it, so APIs that require a real {@code RegularFile} (rather than a jar-resource URL) can consume
+     * plugin-bundled configuration.
+     */
+    private static File materializeResource(Project project, String resourceName, String relativePath) {
+        File target = new File(project.getLayout().getBuildDirectory().getAsFile().get(), relativePath);
+        File parent = target.getParentFile();
+        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
+            throw new UncheckedIOException(
+                    new IOException("Failed to create directory " + parent));
+        }
+        try (InputStream in = JavaConventionsPlugin.class.getResourceAsStream(resourceName)) {
+            if (in == null) {
+                throw new IllegalStateException(resourceName + " not found on classpath");
+            }
+            Files.copy(in, target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to materialize " + resourceName, e);
+        }
+        return target;
     }
 
     private void configureJacoco(Project project) {

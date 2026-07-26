@@ -46,6 +46,27 @@ class JavaConventionsPluginFunctionalTest {
     }
 
     @Test
+    void spotbugsIgnoresMutableRecordComponents(@TempDir File projectDir) throws Exception {
+        // ignoreFailures = false, so any surviving SpotBugs finding *would* fail the build.
+        writeProject(projectDir, /* ignoreFailures= */ false);
+
+        // A record whose sole component is a mutable List: without the bundled exclude filter this
+        // trips EI_EXPOSE_REP (accessor hands out the internal list) and EI_EXPOSE_REP2 (canonical
+        // constructor stores the caller's reference), which at MAX effort / MEDIUM confidence fail
+        // spotbugsMain. The exclude filter drops both, so the task should pass.
+        File source = new File(projectDir, "src/main/java/com/example/Sample.java");
+        write(
+                source,
+                "package com.example;\n"
+                        + "import java.util.List;\n"
+                        + "public record Sample(List<String> items) {}\n");
+
+        BuildResult result = runner(projectDir, "spotbugsMain").build();
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":spotbugsMain").getOutcome());
+    }
+
+    @Test
     void spotlessCheckFailsOnUnformattedProject(@TempDir File projectDir) throws Exception {
         writeProject(projectDir, /* ignoreFailures= */ true);
 
