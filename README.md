@@ -26,7 +26,7 @@ Applying the plugin applies and configures all of the following:
 | [ErrorProne](https://errorprone.info) | `net.ltgt.errorprone` | Compile-time bug detection. |
 | [NullAway](https://github.com/uber/NullAway) | `net.ltgt.nullaway` | Null-safety, enforced only for packages you opt in. |
 | [Spotless](https://github.com/diffplug/spotless) | `com.diffplug.spotless` | Formatting via [google-java-format](https://github.com/google/google-java-format). |
-| Checkstyle | `checkstyle` | Google's `google_checks.xml`, pulled from the Checkstyle jar. |
+| Checkstyle | `checkstyle` | Google's `google_checks.xml`, pulled from the Checkstyle jar (with `MissingJavadocType`/`MissingJavadocMethod` suppressed, so Javadoc isn't required on every public API). |
 | [SpotBugs](https://spotbugs.github.io) | `com.github.spotbugs` | Bytecode static analysis. |
 | [auto-semver](https://github.com/stellarsunset/auto-semver) | `io.github.stellarsunset.auto-semver` | Automatic semantic versioning from annotated git tags. |
 

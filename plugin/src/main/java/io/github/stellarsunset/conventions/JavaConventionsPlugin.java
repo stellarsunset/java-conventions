@@ -8,6 +8,7 @@ import com.github.spotbugs.snom.SpotBugsTask;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.URL;
 import java.util.Properties;
 import net.ltgt.gradle.errorprone.CheckSeverity;
 import net.ltgt.gradle.errorprone.ErrorProneOptions;
@@ -136,6 +137,20 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         // The Google ruleset reports at "warning" severity by default, which never fails a build.
         // Promote to "error" so violations are enforced (respecting ignoreFailures below).
         checkstyle.getConfigProperties().put("org.checkstyle.google.severity", "error");
+
+        // google_checks requires a Javadoc comment on every public/protected type and method
+        // (MissingJavadocType / MissingJavadocMethod), which is heavier than we want. Point the
+        // ruleset's built-in SuppressionFilter at our bundled checkstyle-suppressions.xml, which
+        // turns just those two checks off; every other check (including Javadoc *formatting*) stays
+        // enforced. Checkstyle resolves the property as a file/URL, so the resource URL works
+        // straight out of the plugin jar.
+        URL suppressions = JavaConventionsPlugin.class.getResource("checkstyle-suppressions.xml");
+        if (suppressions == null) {
+            throw new IllegalStateException("checkstyle-suppressions.xml not found on classpath");
+        }
+        checkstyle
+                .getConfigProperties()
+                .put("org.checkstyle.google.suppressionfilter.config", suppressions.toString());
 
         project.getTasks()
                 .withType(Checkstyle.class)

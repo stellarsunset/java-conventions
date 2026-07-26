@@ -56,6 +56,19 @@ class JavaConventionsPluginFunctionalTest {
         assertEquals(TaskOutcome.FAILED, result.task(":spotlessJavaCheck").getOutcome());
     }
 
+    @Test
+    void checkstyleAllowsUndocumentedPublicApi(@TempDir File projectDir) throws Exception {
+        // ignoreFailures = false, so any checkstyle violation *would* fail the build.
+        writeProject(projectDir, /* ignoreFailures= */ false);
+
+        // Format first, so the only thing google_checks could object to on the sample is the missing
+        // Javadoc on its public type and method — which the plugin suppresses.
+        runner(projectDir, "spotlessApply").build();
+        BuildResult result = runner(projectDir, "checkstyleMain").build();
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":checkstyleMain").getOutcome());
+    }
+
     private GradleRunner runner(File projectDir, String... arguments) {
         return GradleRunner.create()
                 .forwardOutput()

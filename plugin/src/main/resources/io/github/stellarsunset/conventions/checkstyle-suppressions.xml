@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!--
+  Suppressions layered on top of the checkstyle jar's google_checks.xml, wired in by
+  JavaConventionsPlugin via the ${org.checkstyle.google.suppressionfilter.config} property.
+
+  google_checks requires a Javadoc comment on every public/protected type and method. That is
+  heavier than these conventions want, so those two checks are switched off. Every other check,
+  including Javadoc *formatting* (SummaryJavadoc, JavadocParagraph, ...), stays enforced.
+-->
+<suppressions>
+  <suppress checks="MissingJavadocType" files=".*"/>
+  <suppress checks="MissingJavadocMethod" files=".*"/>
+</suppressions>
