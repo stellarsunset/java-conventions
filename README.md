@@ -93,12 +93,12 @@ plugin and enable it, so **Reformat Code** matches `spotlessApply`. You still ne
 
 ## Building & publishing
 
-This project mirrors the [auto-semver](https://github.com/stellarsunset/auto-semver) publishing setup:
-the [Vanniktech Maven Publish plugin](https://github.com/vanniktech/gradle-maven-publish-plugin)
-publishes to Maven Central (and, via `GradlePublishPlugin`, the Gradle Plugin Portal) with signed
-artifacts.
+Publishing is handled by the sibling [auto-publish](https://github.com/stellarsunset/auto-publish)
+plugin, which derives the Maven Central publication (coordinates, POM, signing) from git plus the
+`license` in `gradle.properties` — no hand-written `mavenPublishing`/`pom` block. `just release`
+tags via auto-semver and pushes the bundle to Maven Central.
 
 ```bash
 just test            # ./gradlew test functionalTest
-just release minor   # tag, push, and publish a new version
+just release minor   # tag, push, and publish (./gradlew publishToMavenCentral) a new version
 ```

@@ -1,14 +1,11 @@
-import org.gradle.testing.jacoco.tasks.JacocoReport
-
 plugins {
     id("com.gradle.plugin-publish") version "2.1.0"
     jacoco
-    // Dogfood the sibling plugins: auto-semver sets project.version from the latest annotated git
-    // tag (and adds `release`); auto-publish derives the Maven Central publication (coordinates,
-    // POM, signing) from git + gradle.properties, replacing the vanniktech setup.
     alias(libs.plugins.auto.semver)
     alias(libs.plugins.auto.publish)
 }
+
+description = "Opinionated Gradle conventions bundling common Java linting and quality tools."
 
 repositories {
     mavenCentral()
@@ -21,6 +18,7 @@ dependencies {
     implementation(libs.spotless.plugin)
     implementation(libs.spotbugs.plugin)
     implementation(libs.auto.semver)
+    implementation(libs.auto.publish)
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -49,7 +47,7 @@ gradlePlugin {
         implementationClass = "io.github.stellarsunset.conventions.JavaConventionsPlugin"
         displayName = "Java conventions plugin"
         description = "Opinionated Gradle conventions bundling ErrorProne, NullAway, Spotless " +
-                "(google-java-format), Checkstyle (google_checks), SpotBugs, JaCoCo, and auto-semver."
+                "(google-java-format), Checkstyle (google_checks), SpotBugs, JaCoCo, auto-semver, and auto-publish."
         tags.set(listOf("java", "conventions", "linting", "checkstyle", "spotless", "errorprone", "spotbugs"))
     }
 }
@@ -99,7 +97,3 @@ tasks.jacocoTestReport {
 tasks.javadoc {
     options.outputLevel = JavadocOutputLevel.QUIET
 }
-
-// Publishing (coordinates, POM, license, developer, scm, signing, and the publishToMavenCentral
-// task) is configured by the applied io.github.stellarsunset.auto-publish plugin from git plus the
-// license in gradle.properties.

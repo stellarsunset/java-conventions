@@ -5,12 +5,6 @@ import com.github.spotbugs.snom.Confidence;
 import com.github.spotbugs.snom.Effort;
 import com.github.spotbugs.snom.SpotBugsExtension;
 import com.github.spotbugs.snom.SpotBugsTask;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Properties;
 import net.ltgt.gradle.errorprone.CheckSeverity;
 import net.ltgt.gradle.errorprone.ErrorProneOptions;
 import net.ltgt.gradle.nullaway.NullAwayExtension;
@@ -19,12 +13,19 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.plugins.ExtensionAware;
-import org.gradle.api.provider.Provider;
 import org.gradle.api.plugins.quality.Checkstyle;
 import org.gradle.api.plugins.quality.CheckstyleExtension;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.testing.jacoco.tasks.JacocoReport;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 /**
  * Opinionated Gradle conventions for the author's open-source Java repositories.
@@ -57,8 +58,8 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         project.getPluginManager().apply("java");
         project.getPluginManager().apply("jacoco");
 
-        // Bundled companion plugin: automatic semantic versioning from annotated git tags.
         project.getPluginManager().apply("io.github.stellarsunset.auto-semver");
+        project.getPluginManager().apply("io.github.stellarsunset.auto-publish");
 
         configureErrorProneAndNullAway(project, extension);
         configureSpotless(project);
@@ -215,7 +216,9 @@ public class JavaConventionsPlugin implements Plugin<Project> {
                         });
     }
 
-    /** Read a bundled classpath resource (relative to this class's package) as UTF-8 text. */
+    /**
+     * Read a bundled classpath resource (relative to this class's package) as UTF-8 text.
+     */
     private static String readResource(String resourceName) {
         try (InputStream in = JavaConventionsPlugin.class.getResourceAsStream(resourceName)) {
             if (in == null) {
@@ -238,7 +241,9 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         project.getTasks().named("test").configure(test -> test.finalizedBy("jacocoTestReport"));
     }
 
-    /** Tool runtime versions (and the plugin's own version) injected at build time. */
+    /**
+     * Tool runtime versions (and the plugin's own version) injected at build time.
+     */
     private record ToolVersions(
             String errorProneCore,
             String nullaway,
@@ -249,7 +254,7 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         static ToolVersions load() {
             Properties props = new Properties();
             try (InputStream in =
-                    JavaConventionsPlugin.class.getResourceAsStream("versions.properties")) {
+                         JavaConventionsPlugin.class.getResourceAsStream("versions.properties")) {
                 if (in == null) {
                     throw new IllegalStateException("versions.properties not found on classpath");
                 }

@@ -14,9 +14,8 @@ import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
 /**
- * Materializes the plugin's bundled SpotBugs exclude filter to a real file so {@code
- * spotbugs.excludeFilter} (a {@code RegularFileProperty}, which won't accept a jar-resource URL) can
- * consume it.
+ * Materializes the plugin's bundled SpotBugs exclude filter to a real file so {@code spotbugs.excludeFilter} (a
+ * {@code RegularFileProperty}, which won't accept a jar-resource URL) can consume it.
  *
  * <p>This exists as a task rather than a configuration-time file write so the output is a declared
  * {@code @OutputFile}: SpotBugs wires it in as an input and therefore depends on this task, the file

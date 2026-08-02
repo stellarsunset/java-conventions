@@ -1,22 +1,18 @@
 package io.github.stellarsunset.conventions;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/**
- * Functional tests that apply the published plugin to a throwaway project and drive real Gradle
- * builds against it. These resolve the underlying tool artifacts (google-java-format, checkstyle,
- * error_prone_core, spotbugs), so they require network access.
- */
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 class JavaConventionsPluginFunctionalTest {
 
     @Test
@@ -36,7 +32,6 @@ class JavaConventionsPluginFunctionalTest {
     void checkPassesOnFormattedProject(@TempDir File projectDir) throws Exception {
         writeProject(projectDir, /* ignoreFailures= */ true);
 
-        // Let Spotless format the source, then a full check should succeed end-to-end.
         runner(projectDir, "spotlessApply").build();
         BuildResult result = runner(projectDir, "check").build();
 
@@ -47,7 +42,6 @@ class JavaConventionsPluginFunctionalTest {
 
     @Test
     void spotbugsIgnoresMutableRecordComponents(@TempDir File projectDir) throws Exception {
-        // ignoreFailures = false, so any surviving SpotBugs finding *would* fail the build.
         writeProject(projectDir, /* ignoreFailures= */ false);
 
         // A record whose sole component is a mutable List: without the bundled exclude filter this
@@ -82,7 +76,6 @@ class JavaConventionsPluginFunctionalTest {
 
     @Test
     void checkstyleAllowsUndocumentedPublicApi(@TempDir File projectDir) throws Exception {
-        // ignoreFailures = false, so any checkstyle violation *would* fail the build.
         writeProject(projectDir, /* ignoreFailures= */ false);
 
         // Format first, so the only thing google_checks could object to on the sample is the missing
@@ -154,22 +147,23 @@ class JavaConventionsPluginFunctionalTest {
         write(
                 new File(projectDir, "settings.gradle"),
                 "rootProject.name = 'sample'\n");
+        write(new File(projectDir, "gradle.properties"), "groupId=io.github.testuser\n");
         write(
                 new File(projectDir, "build.gradle"),
                 """
-                plugins {
-                  id('io.github.stellarsunset.java-conventions')
-                }
-
-                repositories {
-                  mavenCentral()
-                  gradlePluginPortal()
-                }
-
-                javaConventions {
-                  ignoreFailures.set(%s)
-                }
-                """
+                        plugins {
+                          id('io.github.stellarsunset.java-conventions')
+                        }
+                        
+                        repositories {
+                          mavenCentral()
+                          gradlePluginPortal()
+                        }
+                        
+                        javaConventions {
+                          ignoreFailures.set(%s)
+                        }
+                        """
                         .formatted(ignoreFailures));
 
         // Deliberately messy formatting so spotlessCheck fails until spotlessApply is run.
