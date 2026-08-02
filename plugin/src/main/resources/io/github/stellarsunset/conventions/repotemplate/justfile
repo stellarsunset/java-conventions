@@ -5,9 +5,9 @@
 default:
   just --list
 
-# Run the tests for the project
+# Verify the project (test, plus functionalTest/linters where they exist)
 test:
-  ./gradlew test functionalTest
+  ./gradlew check
 
 # Tag, push, and publish a new release (type = patch | minor | major)
 release type='patch': test
