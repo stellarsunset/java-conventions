@@ -17,6 +17,12 @@ jobs:
         with:
           # Full history + tags so the bundled auto-semver plugin can compute project.version.
           fetch-depth: 0
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@://github.com"          
+
       - uses: actions/setup-java@v5
         with:
           java-version: '25'
