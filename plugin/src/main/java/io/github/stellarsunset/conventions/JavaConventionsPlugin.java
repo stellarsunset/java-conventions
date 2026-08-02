@@ -5,13 +5,11 @@ import com.github.spotbugs.snom.Confidence;
 import com.github.spotbugs.snom.Effort;
 import com.github.spotbugs.snom.SpotBugsExtension;
 import com.github.spotbugs.snom.SpotBugsTask;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import net.ltgt.gradle.errorprone.CheckSeverity;
 import net.ltgt.gradle.errorprone.ErrorProneOptions;
@@ -24,6 +22,7 @@ import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.plugins.quality.Checkstyle;
 import org.gradle.api.plugins.quality.CheckstyleExtension;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.testing.jacoco.tasks.JacocoReport;
 
@@ -187,9 +186,25 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         // Drop EI_EXPOSE_REP / EI_EXPOSE_REP2 project-wide: records/DTOs routinely expose mutable
         // components (List, Exception, arrays) where defensive copies aren't worthwhile. Unlike
         // checkstyle's suppression filter, spotbugs.getExcludeFilter() is a RegularFileProperty and
-        // won't accept a jar-resource URL, so materialize the bundled filter to a real file first.
-        File excludeFilter = materializeResource(project, "spotbugs-exclude.xml", "spotbugs/exclude-filter.xml");
-        spotbugs.getExcludeFilter().set(excludeFilter);
+        // won't accept a jar-resource URL, so a task materializes the bundled filter to a real file.
+        // Setting excludeFilter from that task's output makes SpotBugs depend on it, so the file is
+        // regenerated after `clean` and the wiring survives the configuration cache (both of which a
+        // configuration-time file write would break).
+        String excludeFilterXml = readResource("spotbugs-exclude.xml");
+        TaskProvider<SpotBugsExcludeFilterTask> excludeFilter =
+                project.getTasks()
+                        .register(
+                                "spotbugsExcludeFilter",
+                                SpotBugsExcludeFilterTask.class,
+                                task -> {
+                                    task.getContent().set(excludeFilterXml);
+                                    task.getOutputFile()
+                                            .set(
+                                                    project.getLayout()
+                                                            .getBuildDirectory()
+                                                            .file("spotbugs/exclude-filter.xml"));
+                                });
+        spotbugs.getExcludeFilter().set(excludeFilter.flatMap(SpotBugsExcludeFilterTask::getOutputFile));
 
         project.getTasks()
                 .withType(SpotBugsTask.class)
@@ -200,27 +215,16 @@ public class JavaConventionsPlugin implements Plugin<Project> {
                         });
     }
 
-    /**
-     * Copy a bundled classpath resource out to a file under the project's build directory and return
-     * it, so APIs that require a real {@code RegularFile} (rather than a jar-resource URL) can consume
-     * plugin-bundled configuration.
-     */
-    private static File materializeResource(Project project, String resourceName, String relativePath) {
-        File target = new File(project.getLayout().getBuildDirectory().getAsFile().get(), relativePath);
-        File parent = target.getParentFile();
-        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
-            throw new UncheckedIOException(
-                    new IOException("Failed to create directory " + parent));
-        }
+    /** Read a bundled classpath resource (relative to this class's package) as UTF-8 text. */
+    private static String readResource(String resourceName) {
         try (InputStream in = JavaConventionsPlugin.class.getResourceAsStream(resourceName)) {
             if (in == null) {
                 throw new IllegalStateException(resourceName + " not found on classpath");
             }
-            Files.copy(in, target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to materialize " + resourceName, e);
+            throw new UncheckedIOException("Failed to read " + resourceName, e);
         }
-        return target;
     }
 
     private void configureJacoco(Project project) {

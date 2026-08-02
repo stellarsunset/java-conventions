@@ -4,6 +4,7 @@ nullaway-plugin = "3.1.0"
 spotless-plugin = "7.0.4"
 spotbugs-plugin = "6.5.8"
 auto-semver = "2.0.0"
+auto-publish = "0.0.3"
 
 errorprone-core = "2.50.0"
 nullaway-core = "0.12.7"
@@ -23,3 +24,4 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "jun
 
 [plugins]
 auto-semver = { id = "io.github.stellarsunset.auto-semver", version.ref = "auto-semver" }
+auto-publish = { id = "io.github.stellarsunset.auto-publish", version.ref = "auto-publish" }

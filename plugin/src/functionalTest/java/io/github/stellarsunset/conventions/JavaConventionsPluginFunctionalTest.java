@@ -61,7 +61,10 @@ class JavaConventionsPluginFunctionalTest {
                         + "import java.util.List;\n"
                         + "public record Sample(List<String> items) {}\n");
 
-        BuildResult result = runner(projectDir, "spotbugsMain").build();
+        // Run through `clean` so the exclude filter must be (re)produced by its task after the build
+        // directory is wiped — a configuration-time file write would leave spotbugsMain pointing at a
+        // missing input here.
+        BuildResult result = runner(projectDir, "clean", "spotbugsMain").build();
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":spotbugsMain").getOutcome());
     }

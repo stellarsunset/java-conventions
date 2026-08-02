@@ -1,13 +1,13 @@
-import com.vanniktech.maven.publish.GradlePublishPlugin
 import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     id("com.gradle.plugin-publish") version "2.1.0"
     jacoco
-    id("com.vanniktech.maven.publish") version "0.36.0"
-    // Dogfood the bundled versioning plugin: it sets project.version from the latest annotated git
-    // tag and adds the `release` task the justfile drives.
+    // Dogfood the sibling plugins: auto-semver sets project.version from the latest annotated git
+    // tag (and adds `release`); auto-publish derives the Maven Central publication (coordinates,
+    // POM, signing) from git + gradle.properties, replacing the vanniktech setup.
     alias(libs.plugins.auto.semver)
+    alias(libs.plugins.auto.publish)
 }
 
 repositories {
@@ -100,36 +100,6 @@ tasks.javadoc {
     options.outputLevel = JavadocOutputLevel.QUIET
 }
 
-mavenPublishing {
-    configure(GradlePublishPlugin())
-
-    publishToMavenCentral(automaticRelease = true)
-
-    coordinates("io.github.stellarsunset", "java-conventions", project.version.toString())
-
-    pom {
-        name = "java-conventions"
-        description = "Opinionated Gradle conventions bundling common Java linting and quality tools."
-        url = "https://github.com/stellarsunset/java-conventions"
-        licenses {
-            license {
-                name = "The Apache License, Version 2.0"
-                url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-            }
-        }
-        developers {
-            developer {
-                id = "stellarsunset"
-                name = "Alex Cramer"
-                email = "stellarsunset@proton.me"
-            }
-        }
-        scm {
-            connection = "scm:git:git://github.com/stellarsunset/java-conventions.git"
-            developerConnection = "scm:git:ssh://github.com/stellarsunset/java-conventions.git"
-            url = "http://github.com/stellarsunset/java-conventions"
-        }
-    }
-
-    signAllPublications()
-}
+// Publishing (coordinates, POM, license, developer, scm, signing, and the publishToMavenCentral
+// task) is configured by the applied io.github.stellarsunset.auto-publish plugin from git plus the
+// license in gradle.properties.
