@@ -91,16 +91,9 @@ public class JavaConventionsPlugin implements Plugin<Project> {
                 .add("errorprone", "com.google.errorprone:error_prone_core:" + versions.errorProneCore());
         project.getDependencies().add("errorprone", "com.uber.nullaway:nullaway:" + versions.nullaway());
 
-        // Packages NullAway should enforce null-safety within, sourced from the extension.
         NullAwayExtension nullAway = project.getExtensions().getByType(NullAwayExtension.class);
         nullAway.getAnnotatedPackages().set(extension.getNullAwayAnnotatedPackages());
 
-        // NullAway runs as an error only once packages are opted in; otherwise it is switched fully
-        // OFF. This severity MUST be set through the nullaway DSL rather than errorprone's `checks`
-        // map: the nullaway plugin emits its own `-Xep:NullAway` argument whenever severity is not
-        // OFF, and an enabled-but-unconfigured NullAway (no AnnotatedPackages, no OnlyNullMarked)
-        // crashes the compiler. Setting OFF here makes the plugin skip the check entirely, so it is
-        // never instantiated and the plugin stays safe to apply to projects that have not opted in.
         Provider<CheckSeverity> nullAwaySeverity =
                 extension
                         .getNullAwayAnnotatedPackages()
@@ -143,26 +136,16 @@ public class JavaConventionsPlugin implements Plugin<Project> {
 
         CheckstyleExtension checkstyle = project.getExtensions().getByType(CheckstyleExtension.class);
         checkstyle.setToolVersion(versions.checkstyle());
-        // google_checks.xml ships inside the checkstyle jar; pull it straight from the resolved
-        // artifact so the ruleset always matches the tool version. The `checkstyle` configuration
-        // resolves to the tool jar plus all its transitive dependencies, so narrow it to the single
-        // checkstyle jar — fromArchiveEntry requires exactly one archive.
+
         FileCollection checkstyleJar =
                 project.getConfigurations()
                         .getByName("checkstyle")
                         .filter(file -> file.getName().startsWith("checkstyle-"));
         checkstyle.setConfig(
                 project.getResources().getText().fromArchiveEntry(checkstyleJar, "google_checks.xml"));
-        // The Google ruleset reports at "warning" severity by default, which never fails a build.
-        // Promote to "error" so violations are enforced (respecting ignoreFailures below).
+
         checkstyle.getConfigProperties().put("org.checkstyle.google.severity", "error");
 
-        // google_checks requires a Javadoc comment on every public/protected type and method
-        // (MissingJavadocType / MissingJavadocMethod), which is heavier than we want. Point the
-        // ruleset's built-in SuppressionFilter at our bundled checkstyle-suppressions.xml, which
-        // turns just those two checks off; every other check (including Javadoc *formatting*) stays
-        // enforced. Checkstyle resolves the property as a file/URL, so the resource URL works
-        // straight out of the plugin jar.
         URL suppressions = JavaConventionsPlugin.class.getResource("checkstyle-suppressions.xml");
         if (suppressions == null) {
             throw new IllegalStateException("checkstyle-suppressions.xml not found on classpath");
@@ -184,22 +167,11 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         spotbugs.getReportLevel().set(Confidence.MEDIUM);
         spotbugs.getIgnoreFailures().set(extension.getIgnoreFailures());
 
-        // Provide spotbugs-annotations (for @SuppressFBWarnings) on the main and test compile
-        // classpaths, so suppressing a finding needs no extra dependency in the consuming build. It's
-        // compileOnly — SpotBugs only reads it from bytecode — and the version tracks the resolved
-        // tool version, so there's nothing to keep in sync.
         Provider<String> annotations =
                 spotbugs.getToolVersion().map(version -> "com.github.spotbugs:spotbugs-annotations:" + version);
         project.getDependencies().addProvider("compileOnly", annotations);
         project.getDependencies().addProvider("testCompileOnly", annotations);
 
-        // Drop EI_EXPOSE_REP / EI_EXPOSE_REP2 project-wide: records/DTOs routinely expose mutable
-        // components (List, Exception, arrays) where defensive copies aren't worthwhile. Unlike
-        // checkstyle's suppression filter, spotbugs.getExcludeFilter() is a RegularFileProperty and
-        // won't accept a jar-resource URL, so a task materializes the bundled filter to a real file.
-        // Setting excludeFilter from that task's output makes SpotBugs depend on it, so the file is
-        // regenerated after `clean` and the wiring survives the configuration cache (both of which a
-        // configuration-time file write would break).
         String excludeFilterXml = readResource("spotbugs-exclude.xml");
         TaskProvider<SpotBugsExcludeFilterTask> excludeFilter =
                 project.getTasks()
