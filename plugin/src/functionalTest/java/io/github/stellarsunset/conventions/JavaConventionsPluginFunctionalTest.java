@@ -122,6 +122,89 @@ class JavaConventionsPluginFunctionalTest {
     }
 
     @Test
+    void checkstyleAllowsUnnamedVariables(@TempDir File projectDir) throws Exception {
+        writeProject(projectDir, /* ignoreFailures= */ false);
+
+        // JEP 456 unnamed variables: `_` in an unbound pattern arm and an ignored lambda parameter.
+        // google_checks' PatternVariableName/LambdaParameterName reject `_`; the plugin suppresses
+        // just that case, so after formatting checkstyleMain should pass at error severity.
+        File source = new File(projectDir, "src/main/java/com/example/Sample.java");
+        write(
+                source,
+                "package com.example;\n"
+                        + "import java.util.function.Function;\n"
+                        + "public final class Sample {\n"
+                        + "public static String describe(Object o) {\n"
+                        + "return switch (o) {\n"
+                        + "case Integer _ -> \"int\";\n"
+                        + "default -> \"other\";\n"
+                        + "};\n"
+                        + "}\n"
+                        + "public static Function<String, String> constant() {\n"
+                        + "return _ -> \"constant\";\n"
+                        + "}\n"
+                        + "}\n");
+
+        runner(projectDir, "spotlessApply").build();
+        BuildResult result = runner(projectDir, "checkstyleMain").build();
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":checkstyleMain").getOutcome());
+    }
+
+    @Test
+    void checkstyleAllowsStarImportsAndUnderscoreNamesInTests(@TempDir File projectDir)
+            throws Exception {
+        writeProject(projectDir, /* ignoreFailures= */ false);
+
+        // Test sources may use on-demand imports and given_when_then method names; both are
+        // suppressed for src/test only. Uses java.util.* so no extra test dependency is needed to
+        // compile the source checkstyleTest analyzes.
+        File testSource = new File(projectDir, "src/test/java/com/example/SampleTest.java");
+        assertTrue(testSource.getParentFile().mkdirs(), "test source dirs created");
+        write(
+                testSource,
+                "package com.example;\n"
+                        + "import java.util.*;\n"
+                        + "class SampleTest {\n"
+                        + "void reads_a_list() {\n"
+                        + "List<String> values = new ArrayList<>();\n"
+                        + "values.add(\"x\");\n"
+                        + "}\n"
+                        + "}\n");
+
+        runner(projectDir, "spotlessApply").build();
+        BuildResult result = runner(projectDir, "checkstyleTest").build();
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":checkstyleTest").getOutcome());
+    }
+
+    @Test
+    void checkstyleStillForbidsStarImportsInMain(@TempDir File projectDir) throws Exception {
+        writeProject(projectDir, /* ignoreFailures= */ false);
+
+        // The star-import / method-name relaxations are scoped to test sources; main code is still
+        // held to google_checks, so a main-source on-demand import must fail checkstyleMain. This
+        // guards against the suppression accidentally being applied project-wide.
+        File source = new File(projectDir, "src/main/java/com/example/Sample.java");
+        write(
+                source,
+                "package com.example;\n"
+                        + "import java.util.*;\n"
+                        + "public final class Sample {\n"
+                        + "public static List<String> one() {\n"
+                        + "List<String> v = new ArrayList<>();\n"
+                        + "v.add(\"x\");\n"
+                        + "return v;\n"
+                        + "}\n"
+                        + "}\n");
+
+        runner(projectDir, "spotlessApply").build();
+        BuildResult result = runner(projectDir, "checkstyleMain").buildAndFail();
+
+        assertEquals(TaskOutcome.FAILED, result.task(":checkstyleMain").getOutcome());
+    }
+
+    @Test
     void applyRepoTemplateWritesManagedAndSeedFiles(@TempDir File projectDir) throws Exception {
         writeProject(projectDir, /* ignoreFailures= */ true);
 
