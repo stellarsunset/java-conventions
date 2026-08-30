@@ -9,8 +9,13 @@
   google_checks requires a Javadoc comment on every public/protected type and method. That is
   heavier than these conventions want, so those two checks are switched off. Every other check,
   including Javadoc *formatting* (SummaryJavadoc, JavadocParagraph, ...), stays enforced.
+
+  AbbreviationAsWordInName is also off: google_checks caps consecutive capitals in an identifier
+  (e.g. flags `IOException`-style names, `parseHTTPUrl`, `getURL`), which is more restrictive than we
+  want for common acronyms.
 -->
 <suppressions>
   <suppress checks="MissingJavadocType" files=".*"/>
   <suppress checks="MissingJavadocMethod" files=".*"/>
+  <suppress checks="AbbreviationAsWordInName" files=".*"/>
 </suppressions>

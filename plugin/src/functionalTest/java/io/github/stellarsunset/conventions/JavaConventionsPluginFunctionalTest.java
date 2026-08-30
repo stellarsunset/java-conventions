@@ -75,11 +75,21 @@ class JavaConventionsPluginFunctionalTest {
     }
 
     @Test
-    void checkstyleAllowsUndocumentedPublicApi(@TempDir File projectDir) throws Exception {
+    void checkstyleAllowsSuppressedChecks(@TempDir File projectDir) throws Exception {
         writeProject(projectDir, /* ignoreFailures= */ false);
 
-        // Format first, so the only thing google_checks could object to on the sample is the missing
-        // Javadoc on its public type and method — which the plugin suppresses.
+        // A public, undocumented type/method (MissingJavadocType/Method) whose name also packs
+        // consecutive capitals (AbbreviationAsWordInName). All three are suppressed by the plugin, so
+        // after formatting, checkstyleMain should pass at error severity.
+        File source = new File(projectDir, "src/main/java/com/example/Sample.java");
+        write(
+                source,
+                "package com.example;\n"
+                        + "public final class Sample {\n"
+                        + "public static String parseHTTPUrl(String rawURL){return rawURL;}\n"
+                        + "}\n");
+
+        // Format first, so name-based checks are the only thing google_checks could object to.
         runner(projectDir, "spotlessApply").build();
         BuildResult result = runner(projectDir, "checkstyleMain").build();
 
