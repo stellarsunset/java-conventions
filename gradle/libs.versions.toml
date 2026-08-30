@@ -4,7 +4,7 @@ nullaway-plugin = "3.1.0"
 spotless-plugin = "7.0.4"
 spotbugs-plugin = "6.5.8"
 auto-semver = "2.0.0"
-auto-publish = "0.0.13"
+auto-publish = "0.0.14"
 
 errorprone-core = "2.50.0"
 nullaway-core = "0.12.7"
