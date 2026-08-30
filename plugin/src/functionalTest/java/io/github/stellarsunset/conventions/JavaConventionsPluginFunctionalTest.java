@@ -64,6 +64,31 @@ class JavaConventionsPluginFunctionalTest {
     }
 
     @Test
+    void spotbugsAnnotationsAreAvailableForSuppression(@TempDir File projectDir) throws Exception {
+        // ignoreFailures = false, so a real SpotBugs finding would fail the build.
+        writeProject(projectDir, /* ignoreFailures= */ false);
+
+        // An unused private method trips UPM_UNCALLED_PRIVATE_METHOD. The bundled spotbugs-annotations
+        // dependency makes @SuppressFBWarnings resolve on the compile classpath (so this compiles) and
+        // silences the finding, so spotbugsMain passes — no dependency declared by the consumer.
+        File source = new File(projectDir, "src/main/java/com/example/Sample.java");
+        write(
+                source,
+                "package com.example;\n"
+                        + "import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;\n"
+                        + "public final class Sample {\n"
+                        + "  public int value() { return 1; }\n"
+                        + "  @SuppressFBWarnings(value = \"UPM_UNCALLED_PRIVATE_METHOD\", justification ="
+                        + " \"test\")\n"
+                        + "  private int unused() { return 2; }\n"
+                        + "}\n");
+
+        BuildResult result = runner(projectDir, "clean", "spotbugsMain").build();
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":spotbugsMain").getOutcome());
+    }
+
+    @Test
     void spotlessCheckFailsOnUnformattedProject(@TempDir File projectDir) throws Exception {
         writeProject(projectDir, /* ignoreFailures= */ true);
 

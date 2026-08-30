@@ -184,6 +184,15 @@ public class JavaConventionsPlugin implements Plugin<Project> {
         spotbugs.getReportLevel().set(Confidence.MEDIUM);
         spotbugs.getIgnoreFailures().set(extension.getIgnoreFailures());
 
+        // Provide spotbugs-annotations (for @SuppressFBWarnings) on the main and test compile
+        // classpaths, so suppressing a finding needs no extra dependency in the consuming build. It's
+        // compileOnly — SpotBugs only reads it from bytecode — and the version tracks the resolved
+        // tool version, so there's nothing to keep in sync.
+        Provider<String> annotations =
+                spotbugs.getToolVersion().map(version -> "com.github.spotbugs:spotbugs-annotations:" + version);
+        project.getDependencies().addProvider("compileOnly", annotations);
+        project.getDependencies().addProvider("testCompileOnly", annotations);
+
         // Drop EI_EXPOSE_REP / EI_EXPOSE_REP2 project-wide: records/DTOs routinely expose mutable
         // components (List, Exception, arrays) where defensive copies aren't worthwhile. Unlike
         // checkstyle's suppression filter, spotbugs.getExcludeFilter() is a RegularFileProperty and
