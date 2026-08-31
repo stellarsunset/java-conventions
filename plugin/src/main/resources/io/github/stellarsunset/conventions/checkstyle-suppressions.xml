@@ -14,6 +14,12 @@
   (e.g. flags `IOException`-style names, `parseHTTPUrl`, `getURL`), which is more restrictive than we
   want for common acronyms.
 
+  LocalVariableName is off for the same reason: google_checks' pattern
+  (^[a-z]([a-z0-9][a-zA-Z0-9]*)?$) forbids a single lowercase letter followed by an uppercase one,
+  rejecting terse domain locals like `cDelta`/`rDelta` (column/row) or `xDec`/`yDec`. That naming is
+  idiomatic here, and the pattern isn't a configurable property on google_checks' module, so the whole
+  check is dropped. Member/method/type/parameter naming stays enforced.
+
   Unnamed variables (JEP 456, `_`) are idiomatic in modern Java — unbound pattern-match arms
   (`case Foo _ ->`) and ignored lambda parameters (`_ -> ...`). google_checks' name checks predate
   them and reject `_` as a malformed identifier, so drop only the `_` case (matched by message);
@@ -28,6 +34,7 @@
   <suppress checks="MissingJavadocType" files=".*"/>
   <suppress checks="MissingJavadocMethod" files=".*"/>
   <suppress checks="AbbreviationAsWordInName" files=".*"/>
+  <suppress checks="LocalVariableName" files=".*"/>
 
   <suppress checks="PatternVariableName" message="'_' must match"/>
   <suppress checks="LambdaParameterName" message="'_' must match"/>
